@@ -1,6 +1,3 @@
-/**
- * Created by whitman on 11/4/16.
- */
 import java.util.*;
 /*
 
@@ -165,10 +162,22 @@ public class setScanner{
    */
 
         StringBuilder sb = new StringBuilder();
+        ArrayList<Character> specialTokens = new ArrayList<>();
+        specialTokens.add(',');
+        specialTokens.add(';');
+        specialTokens.add('{');
+        specialTokens.add('}');
+        specialTokens.add('.');
+        specialTokens.add('(');
+        specialTokens.add(')');
+
         for(int tokenPosition= currPos; tokenPosition < currLine.length; tokenPosition++){
-            if(!Character.isWhitespace(currLine[tokenPosition]) && currLine[tokenPosition] == ','){
+            if(!Character.isWhitespace(currLine[tokenPosition])){
                 sb.append(currLine[tokenPosition]);
                 currPos +=1;
+                if(specialTokens.contains(currLine[tokenPosition])){
+                    break;
+                }
             } else if(sb.length()>0) {
                 String tokenString = sb.toString();
                 break;
