@@ -54,7 +54,9 @@ public class tokenDecode {
 		return 30;
 	}
 
-	public String getType(int id) {
+	public String getType(int id) throws Exception {
+		if (id<0 || id>30)
+			throw new Exception("Invalid token ID");
 		if (key.containsKey(id))
 			return key.get(id);
 		if (id==1)
@@ -65,11 +67,11 @@ public class tokenDecode {
 	}
 
 
-	public static void main (String[] args){
+	public static void main (String[] args) throws Exception{
 
 		tokenDecode decoder = new tokenDecode();
 		System.out.println(decoder.getID("var"));
-		System.out.println(decoder.getType(12));
+		System.out.println(decoder.getType(31));
 		Token token = new Token("program",1);
 		System.out.println(token.getTokenType());
 	}
