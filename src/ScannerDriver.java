@@ -1,4 +1,5 @@
 import java.util.*;
+import java.io.File;
 /*
 
 A class for testing the setScanner.
@@ -14,7 +15,8 @@ public class ScannerDriver{
 
       // you can use i/o redirection to vary the source file
       // java ScannerDriver <src.txt
-      setScanner sc = new setScanner(new Scanner(System.in));
+      File myfile = new File("/Users/whitman/Desktop/hw4translator/hm4/p1.txt");
+      setScanner sc = new setScanner(new Scanner(myfile));
 
       int i = 0;
 

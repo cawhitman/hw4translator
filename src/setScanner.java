@@ -172,17 +172,24 @@ public class setScanner{
         specialTokens.add(')');
 
         if(currPos == currLine.length - 1) {
-            if (src.hasNextLine()) {
+            if (src.hasNextLine()){
                 currLine = src.nextLine().toCharArray();
                 currLineNumber += 1;
                 currPos = 0;
+            }else{
+                currToken = new Token(29,currLineNumber);
+                return;
             }
         }
 
-        String tokenString;
+        String tokenString = null;
 
         for(int tokenPosition= currPos; tokenPosition < currLine.length; tokenPosition++){
             if(!Character.isWhitespace(currLine[tokenPosition])){
+                if(currPos == currLine.length-1){
+                    tokenString = sb.toString();
+                    break;
+                }
                 // Test for special characters , : { } . ( )
                 if(specialTokens.contains(currLine[tokenPosition])){
                     sb.append(currLine[tokenPosition]);
@@ -193,22 +200,27 @@ public class setScanner{
                 // Test for special characters <= and :=
                 if(currLine[tokenPosition]=='<' || currLine[tokenPosition]==':' ){
                     sb.append(currLine[tokenPosition]);
+                    currPos +=1;
+
                     if(tokenPosition+1 < currLine.length && currLine[tokenPosition+1]=='=' ){
                         sb.append(currLine[tokenPosition]);
-                        currPos +=2;
+                        currPos +=1;
                         break;
                     }
                 }
                 sb.append(currLine[tokenPosition]);
                 currPos +=1;
             } else if(sb.length()>0) {
+                currPos += 1;
                 tokenString = sb.toString();
                 break;
+            } else {
+                currPos +=1;
             }
         }
 
         //call decode
-
+        currToken = new Token(tokenString,currLineNumber);
     }
 }
 
