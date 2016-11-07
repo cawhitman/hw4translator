@@ -144,6 +144,25 @@ public class Token implements Comparable<Token>{
       }
    }
 
+   //constructor for when the tkCode is unknown
+   public Token(String tkString, int ln){
+      tokenDecode decoder= new tokenDecode();
+      if (ln < 1 || tkString == null || tkString.length() == 0 || Character.isWhitespace(tkString.charAt(0))){
+         tokenType = UNRECOGNIZED;
+         tokenString = "invalidly constructed";
+         lineNum = -1;
+      }
+      else{
+         tokenType = decoder.getID(tkString);
+         lineNum = ln;
+         if (tokenType == UNRECOGNIZED||tokenType == ID||tokenType == NATCONST)
+            tokenString = tkString;
+         else
+            tokenString = "";
+      }
+   }
+
+
    // getters
 
    public int getTokenType(){

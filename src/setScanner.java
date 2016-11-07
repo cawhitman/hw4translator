@@ -171,24 +171,34 @@ public class setScanner{
         specialTokens.add('(');
         specialTokens.add(')');
 
+        if(currPos == currLine.length - 1) {
+            if (src.hasNextLine()) {
+                currLine = src.nextLine().toCharArray();
+                currLineNumber += 1;
+                currPos = 0;
+            }
+        }
+
+        String tokenString;
+
         for(int tokenPosition= currPos; tokenPosition < currLine.length; tokenPosition++){
             if(!Character.isWhitespace(currLine[tokenPosition])){
-                sb.append(currLine[tokenPosition]);
-                currPos +=1;
                 if(specialTokens.contains(currLine[tokenPosition])){
+                    sb.append(currLine[tokenPosition]);
+                    currPos +=1;
+                    tokenString = sb.toString();
                     break;
                 }
+                sb.append(currLine[tokenPosition]);
+                currPos +=1;
             } else if(sb.length()>0) {
-                String tokenString = sb.toString();
+                tokenString = sb.toString();
                 break;
             }
         }
+
         //call decode
 
-        if(src.hasNextLine()) {
-            currLine = src.nextLine().toCharArray();
-            currLineNumber += 1;
-        }
     }
 }
 
