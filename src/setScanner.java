@@ -183,11 +183,21 @@ public class setScanner{
 
         for(int tokenPosition= currPos; tokenPosition < currLine.length; tokenPosition++){
             if(!Character.isWhitespace(currLine[tokenPosition])){
+                // Test for special characters , : { } . ( )
                 if(specialTokens.contains(currLine[tokenPosition])){
                     sb.append(currLine[tokenPosition]);
                     currPos +=1;
                     tokenString = sb.toString();
                     break;
+                }
+                // Test for special characters <= and :=
+                if(currLine[tokenPosition]=='<' || currLine[tokenPosition]==':' ){
+                    sb.append(currLine[tokenPosition]);
+                    if(tokenPosition+1 < currLine.length && currLine[tokenPosition+1]=='=' ){
+                        sb.append(currLine[tokenPosition]);
+                        currPos +=2;
+                        break;
+                    }
                 }
                 sb.append(currLine[tokenPosition]);
                 currPos +=1;
