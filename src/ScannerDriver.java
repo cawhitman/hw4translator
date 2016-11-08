@@ -1,5 +1,5 @@
-import java.util.*;
 import java.io.File;
+import java.util.*;
 /*
 
 A class for testing the setScanner.
@@ -7,29 +7,29 @@ It creates a setScanner to read from standard in, and then
 enters a loop to fetch tokens and display them until it reaches
 the EOF token.
 
-*******************************************************/
+ *******************************************************/
 
 public class ScannerDriver{
 
-   public static void main(String[] args) throws Exception{
+	public static void main(String[] args) throws Exception{
 
-      // you can use i/o redirection to vary the source file
-      // java ScannerDriver <src.txt
-      File myfile = new File("/Users/whitman/Desktop/hw4translator/hm4/p1.txt");
-      setScanner sc = new setScanner(new Scanner(myfile));
+		// you can use i/o redirection to vary the source file
+		// java ScannerDriver <src.txt
+		
+		setScanner sc = new setScanner(new Scanner(System.in));
+		//setScanner sc = new setScanner(new Scanner(new File(".\\src\\scannerTestFile1.txt")));
+		int i = 0;
 
-      int i = 0;
+		Token tk = null;
 
-      Token tk = null;
+		do{
+			tk = sc.lookahead();
+			// with my skeletons, the next line throws an exception, because
+			// the lookahead method returns a null value;
+			System.out.println("Token #" + (++i) + ": " + tk);
+			sc.consume();
+		}while (tk.getTokenType() != Token.EOF);
 
-      do{
-         tk = sc.lookahead();
-         // with my skeletons, the next line throws an exception, because
-         // the lookahead method returns a null value;
-         System.out.println("Token #" + (++i) + ": " + tk);
-         sc.consume();
-      }while (tk.getTokenType() != Token.EOF);
-
-      System.out.println("" + i + " tokens were read.");
-   }
+		System.out.println("" + i + " tokens were read.");
+	}
 }
