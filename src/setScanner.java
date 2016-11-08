@@ -96,41 +96,49 @@ public class setScanner{
 		return singleChar || doubleChar;
 	}
 
-	//checks of number is natconst
-	private boolean isNatConst(){
-		return Character.isDigit(currLine[currPos]) && (currPos==0 || currLine[currPos-1]=='0' || Character.isWhitespace(currLine[currPos-1]) || specialTokens.contains(currLine[currPos-1]));
-	}
+
 
 	//builds a natconst as a string and returns it recursively
-	private String natConstBuilder(){
+	private String natConstBuilder(int tokLen){
 		if (currPos>=currLine.length||!Character.isDigit(currLine[currPos]))
 			return "";
-		if ((currLine[currPos]=='0' && isNatConst()) || currPos+1>=currLine.length || !Character.isDigit(currLine[currPos+1]))
+		if ((currLine[currPos]=='0' && tokLen==1) || currPos+1>=currLine.length || !Character.isDigit(currLine[currPos+1]))
 			return "" + currLine[currPos++];
 		StringBuilder sb = new StringBuilder(""+currLine[currPos++]);
-		return sb.append(natConstBuilder()).toString();
+		return sb.append(natConstBuilder(tokLen+1)).toString();
 	}
 
 	//recursively builds token strings
-	private String nextTokString(boolean possibleNat){
+	private String nextTokString(int tokLen, boolean isUnrecog){
 		if (currPos>=currLine.length)
 			return "";
+		StringBuilder sb = new StringBuilder();
 		if (Character.isWhitespace(currLine[currPos])){
 			currPos++;
 			return "";
 		}
-		if (Character.isDigit(currLine[currPos])&&isNatConst()&&possibleNat){
-			return natConstBuilder();			
-		}
-		if ((currLine[currPos]==':' || currLine[currPos]=='<') && currPos+1<currLine.length && currLine[currPos+1]=='='){
-			return "" + currLine[currPos++] + currLine[currPos++];
-		}
-		if (specialTokens.contains(currLine[currPos]) || nextIsSpecial()){
-			return ""+currLine[currPos++];
+		if (!Character.isLetterOrDigit(currLine[currPos]) && !specialTokens.contains(currLine[currPos])&& tokLen==1){
+			boolean twoPart = (currLine[currPos]==':' || currLine[currPos]=='<') && currPos+1<currLine.length && currLine[currPos+1]=='=';
+			if (!twoPart){
+				sb.append(""+currLine[currPos++]);
+				return sb.append(nextTokString(tokLen+1,true)).toString();
+			}
 		}
 
-		StringBuilder sb = new StringBuilder(""+currLine[currPos++]);
-		return sb.append(nextTokString(false)).toString();
+		if(!isUnrecog){	
+			if (Character.isDigit(currLine[currPos])&&tokLen==1){
+				return natConstBuilder(tokLen);			
+			}
+			if ((currLine[currPos]==':' || currLine[currPos]=='<') && currPos+1<currLine.length && currLine[currPos+1]=='='){
+				return "" + currLine[currPos++] + currLine[currPos++];
+			}
+			if (specialTokens.contains(currLine[currPos]) || nextIsSpecial()){
+				return ""+currLine[currPos++];
+			}
+
+		}
+		sb.append(""+currLine[currPos++]);
+		return sb.append(nextTokString(tokLen+1,isUnrecog)).toString();
 	}
 
 
@@ -227,16 +235,16 @@ public class setScanner{
 
 		if (currToken.getTokenType()==29)
 			return;
-		String tokString = nextTokString(true);
+		String tokString = nextTokString(1,false);
 		while (tokString.isEmpty()){
 			if(currPos<currLine.length){
-				tokString = nextTokString(true);
+				tokString = nextTokString(1,false);
 			}
 			else if(src.hasNextLine()){
 				currLine = src.nextLine().toCharArray();
 				currPos=0;
 				currLineNumber++;
-				tokString = nextTokString(true);
+				tokString = nextTokString(1,false);
 			}
 			else
 				break;
