@@ -33,45 +33,109 @@ You can use alternative data members if you think you have a better approach, bu
 behavior your implementation leads to should match the spec given here and provide the
 same public methods and constructor.
 
-****************************************************************************/
+ ****************************************************************************/
 
 public class setScanner{
 
-    private Scanner src;
-    private Token currToken;
-    // NOTE: NO SINGLE TOKEN CAN STRADDLE A LINE BOUNDARY
-    private char[] currLine = {};
-    private int currPos; // to record where we are on the current line
-    private int currLineNumber;
+	private Scanner src;
+	private Token currToken;
+	// NOTE: NO SINGLE TOKEN CAN STRADDLE A LINE BOUNDARY
+	private char[] currLine = {};
+	private int currPos; // to record where we are on the current line
+	private int currLineNumber;
+	ArrayList<Character> specialTokens;
 
-    public setScanner(Scanner s) throws Exception{
-        if (s == null)
-            throw new Exception("Invalid Scanner input to setScanner constructor.");
+	public setScanner(Scanner s) throws Exception{
 
-        src = s;
-        // load currToken with the first token
-        currLineNumber = 1;
-        currPos = 0;
-        currLine = src.nextLine().toCharArray();
+		//made this a global variable, it was really useful in other methods
+		specialTokens = new ArrayList<>();
+		specialTokens.add(',');
+		specialTokens.add(';');
+		specialTokens.add('{');
+		specialTokens.add('}');
+		specialTokens.add('.');
+		specialTokens.add('(');
+		specialTokens.add(')');
+		specialTokens.add('=');
+		specialTokens.add('*');
+		specialTokens.add('+');
+		specialTokens.add('\\');
+		specialTokens.add('-');
 
-        this.consume();
-    }
+		if (s == null)
+			throw new Exception("Invalid Scanner input to setScanner constructor.");
 
-    public int getCurrLineNumber(){
-        return currLineNumber;
-    }
+		src = s;
+		// load currToken with the first token
+		currLineNumber = 1;
+		currPos = 0;
+		currLine = src.nextLine().toCharArray();
+		currToken = new Token();
 
-    public int getCurrPos(){
-        return currPos;
-    }
+		this.consume();
+	}
 
-    // returns the current token w/o advancing
-    public Token lookahead(){
-        return currToken;
-    }
+	public int getCurrLineNumber(){
+		return currLineNumber;
+	}
 
-    public void consume(){
-   /*
+	public int getCurrPos(){
+		return currPos;
+	}
+
+	// returns the current token w/o advancing
+	public Token lookahead(){
+		return currToken;
+	}
+
+
+	//tests if the next character or set of characters is special
+	private boolean nextIsSpecial(){
+		boolean singleChar = currPos+1<currLine.length && specialTokens.contains(currLine[currPos+1]);
+		boolean doubleChar = currPos+2<currLine.length && (currLine[currPos+1]==':' || currLine[currPos+1]=='<') && currLine[currPos+2]=='=';
+		return singleChar || doubleChar;
+	}
+
+	//checks of number is natconst
+	private boolean isNatConst(){
+		return Character.isDigit(currLine[currPos]) && (currPos==0 || currLine[currPos-1]=='0' || Character.isWhitespace(currLine[currPos-1]) || specialTokens.contains(currLine[currPos-1]));
+	}
+
+	//builds a natconst as a string and returns it recursively
+	private String natConstBuilder(){
+		if (currPos>=currLine.length||!Character.isDigit(currLine[currPos]))
+			return "";
+		if ((currLine[currPos]=='0' && isNatConst()) || currPos+1>=currLine.length || !Character.isDigit(currLine[currPos+1]))
+			return "" + currLine[currPos++];
+		StringBuilder sb = new StringBuilder(""+currLine[currPos++]);
+		return sb.append(natConstBuilder()).toString();
+	}
+
+	//recursively builds token strings
+	private String nextTokString(boolean possibleNat){
+		if (currPos>=currLine.length)
+			return "";
+		if (Character.isWhitespace(currLine[currPos])){
+			currPos++;
+			return "";
+		}
+		if (Character.isDigit(currLine[currPos])&&isNatConst()&&possibleNat){
+			return natConstBuilder();			
+		}
+		if ((currLine[currPos]==':' || currLine[currPos]=='<') && currPos+1<currLine.length && currLine[currPos+1]=='='){
+			return "" + currLine[currPos++] + currLine[currPos++];
+		}
+		if (specialTokens.contains(currLine[currPos]) || nextIsSpecial()){
+			return ""+currLine[currPos++];
+		}
+
+		StringBuilder sb = new StringBuilder(""+currLine[currPos++]);
+		return sb.append(nextTokString(false)).toString();
+	}
+
+
+	public void consume(){
+		/*
 
      Note, the Character wrapper class has a static method, isWhitespace, that
      can be used to test if a char value is WS.
@@ -159,68 +223,29 @@ public class setScanner{
         }
 
 
-   */
+		 */
 
-        StringBuilder sb = new StringBuilder();
-        ArrayList<Character> specialTokens = new ArrayList<>();
-        specialTokens.add(',');
-        specialTokens.add(';');
-        specialTokens.add('{');
-        specialTokens.add('}');
-        specialTokens.add('.');
-        specialTokens.add('(');
-        specialTokens.add(')');
+		if (currToken.getTokenType()==29)
+			return;
+		String tokString = nextTokString(true);
+		while (tokString.isEmpty()){
+			if(currPos<currLine.length){
+				tokString = nextTokString(true);
+			}
+			else if(src.hasNextLine()){
+				currLine = src.nextLine().toCharArray();
+				currPos=0;
+				currLineNumber++;
+				tokString = nextTokString(true);
+			}
+			else
+				break;
+		}
+		if (tokString.isEmpty())
+			currToken = new Token(29,currLineNumber+1);
+		else
+			currToken = new Token(tokString,currLineNumber);
 
-        if(currPos == currLine.length - 1) {
-            if (src.hasNextLine()){
-                currLine = src.nextLine().toCharArray();
-                currLineNumber += 1;
-                currPos = 0;
-            }else{
-                currToken = new Token(29,currLineNumber);
-                return;
-            }
-        }
-
-        String tokenString = null;
-
-        for(int tokenPosition= currPos; tokenPosition < currLine.length; tokenPosition++){
-            if(!Character.isWhitespace(currLine[tokenPosition])){
-                if(currPos == currLine.length-1){
-                    tokenString = sb.toString();
-                    break;
-                }
-                // Test for special characters , : { } . ( )
-                if(specialTokens.contains(currLine[tokenPosition])){
-                    sb.append(currLine[tokenPosition]);
-                    currPos +=1;
-                    tokenString = sb.toString();
-                    break;
-                }
-                // Test for special characters <= and :=
-                if(currLine[tokenPosition]=='<' || currLine[tokenPosition]==':' ){
-                    sb.append(currLine[tokenPosition]);
-                    currPos +=1;
-
-                    if(tokenPosition+1 < currLine.length && currLine[tokenPosition+1]=='=' ){
-                        sb.append(currLine[tokenPosition]);
-                        currPos +=1;
-                        break;
-                    }
-                }
-                sb.append(currLine[tokenPosition]);
-                currPos +=1;
-            } else if(sb.length()>0) {
-                currPos += 1;
-                tokenString = sb.toString();
-                break;
-            } else {
-                currPos +=1;
-            }
-        }
-
-        //call decode
-        currToken = new Token(tokenString,currLineNumber);
-    }
+	}
 }
 
