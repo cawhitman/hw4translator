@@ -70,7 +70,8 @@ public class setScanner{
 		currLineNumber = 1;
 		currPos = 0;
 		currLine = src.nextLine().toCharArray();
-		currToken = new Token();
+        // initialize to program
+		currToken = new Token(0,1);
 
 		this.consume();
 	}
