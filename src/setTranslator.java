@@ -1,6 +1,9 @@
 import java.util.*;
 import java.io.*;
 /*
+NEEDS METHOD FOR EXCEPTIONS
+NEEDS IMPROVED METHOD FOR BOOLEAN STATEMENTS
+NEEDS EXPRESSION HANDLER (PRINT EXPRESSION AFTER END)
 
 A template for the translator part of the project.
 
@@ -8,321 +11,318 @@ You will need to add more static variables and also methods
 for each of the grammar variables, and modify the program method below.
 
 
-*/
+ */
 public class setTranslator{
-    /*For the purpose of generating temporaries, it is convenient to use
-    the following*/
-    private static String setTempPrefix = "$sv";
-    private static String natArrTempPrefix = "$iv";
-    private static int
-            nextNatArrTempSuffix,
-            usedSetTemps,// tracks the set temp variables that ard currently in use
-            decSetTemps; // tracks the set temp variables that have been
-                        // declared in the current scope;
-                        // discussed below; generally, usedSetTemps <= decSetTemps
+
+	private static setScanner sc;
+	private static PrintStream dest;
+	private static ArrayList <String> nat, set;
+	
+	//done
+	private static void setHeader() throws Exception{
+		Token current = getNextToken();
+		if (current.getTokenType()!=Token.ID)
+			throw new Exception("\"id\" expected.");
+		String title = current.getTokenString();
+		dest = new PrintStream(String.format("%s.java", title));
+		dest.printf("public class %s{\r\n\r\n", title);
+	}
+
+	//done
+	private static void close(){
+		dest.println("}");
+		dest.close();
+	}
+
+	//done
+	private static void natSetHandler() throws Exception{
+		Token current = getNextToken();
+		ArrayList <String> curVar;
+		int tokType = current.getTokenType();
+		if (tokType!=Token.NAT || tokType!=Token.SET)
+			return;
+		if (tokType==Token.NAT){
+			dest.print("private static int ");
+			curVar=nat;
+		}
+		else{
+			dest.print("private static CofinFin ");
+			curVar=set;
+		}
+		current = getNextToken();
+		if (current.getTokenType()!=Token.ID)
+			throw new Exception("\"id\" expected.");
+		dest.print(current.getTokenString());
+		current = getNextToken();
+		while (current.getTokenType()==Token.COMMA){
+			current = getNextToken();
+			String tokString = current.getTokenString();
+			if (current.getTokenType()!=Token.ID)
+				throw new Exception("\"id\" expected.");
+			if (set.contains(tokString)||nat.contains(tokString))
+				throw new Exception(String.format("Duplicate variable \"%s\" used.", tokString));
+			dest.printf(", %s", tokString);
+			curVar.add(tokString);
+			current = getNextToken();
+		}
+		dest.println(";");
+		natSetHandler();
+	}
+
+	//done
+	private static void varHandler() throws Exception{
+		Token current = getNextToken();
+		nat = new ArrayList<String>();
+		set = new ArrayList<String>();
+		int tokType = current.getTokenType();
+		if (tokType!=Token.VAR)
+			throw new Exception("\"var\" expected.");
+		natSetHandler();
+	}
+
+	//done
+	public static void beginHandler() throws Exception{
+		int origin = sc.lookahead().getTokenType();
+		if (origin != Token.BEGIN)
+			throw new Exception("\"begin\" expected.");
+		dest.println("public static void main(String[] args){");
+		statementHandler();
+	}
+
+	//done
+	private static void isInHandler() throws Exception{
+		String number = sc.lookahead().getTokenString();
+		getNextToken();
+		cofinFinHandler();
+		dest.printf(".isIn(%s)",number);
+	}
+
+	//done
+	private static void cofinFinHandler() throws Exception{
+		Token current = sc.lookahead();
+		int tokType = current.getTokenType();
+		if (tokType!=Token.ID && tokType != Token.COMPLEMENT && tokType!=Token.CMP && tokType!=Token.LEFTBRACE){
+			throw new Exception("set value expected.");
+		}
+		if (tokType==Token.ID){
+			String tokString = current.getTokenString();
+			if (!set.contains(tokString)){
+				if (!nat.contains(tokString))
+					throw new Exception(String.format("Undefined variable \"%s\" used.", tokString));
+				throw new Exception("Type mismatch exception.");
+			}
+			dest.print(tokString);
+		}
+		else if (tokType==Token.COMPLEMENT){
+			complementHandler();
+		}
+		else{
+			cofinFinBuilder();
+		}
+	}
+
+	//done
+	private static void complementHandler() throws Exception{
+		getNextToken();
+		cofinFinHandler();
+		dest.print(".complement()");
+	}
+
+	//done
+	private static void cofinFinBuilder() throws Exception{
+		boolean comp = sc.lookahead().getTokenType()==Token.CMP;
+		Token current = getNextToken();
+		if (comp){
+			if (current.getTokenType()!=Token.LEFTBRACE)
+				throw new Exception("\"{\" expected.");
+			current = getNextToken();
+		}
+		dest.printf("new CofinFin(%b,new int[]{",comp);
+		if (current.getTokenType()==Token.RIGHTBRACE){
+			dest.print("})");
+			return;
+		}
+		if (current.getTokenType()!=Token.NATCONST && current.getTokenType()!=Token.ID){
+			throw new Exception("invalid set member.");
+		}
+		if (current.getTokenType()==Token.ID && !nat.contains(current.getTokenString())){
+			if (!set.contains(current.getTokenString()))
+				throw new Exception(String.format("Undefined variable \"%s\" used.", current.getTokenString()));
+			throw new Exception("Type mismatch exception.");
+		}
+		dest.print(current.getTokenString());
+		current=getNextToken();
+		while (current.getTokenType()!=Token.RIGHTBRACE){
+			if (current.getTokenType()!=Token.NATCONST && current.getTokenType()!=Token.ID){
+				throw new Exception("invalid set member.");
+			}
+			if (current.getTokenType()==Token.ID && !nat.contains(current.getTokenString())){
+				if (!set.contains(current.getTokenString()))
+					throw new Exception(String.format("Undefined variable \"%s\" used.", current.getTokenString()));
+				throw new Exception("Type mismatch exception.");
+			}
+			dest.printf(", %s", current.getTokenString());
+			current=getNextToken();
+		}
+		dest.print("})");
+	}
+
+	//done
+	private static void subsetHandler() throws Exception{
+		dest.print(".isSubsetOf(");
+		getNextToken();
+		cofinFinHandler();
+		dest.print(")");
+	}
+
+	//done
+	private static void setEqualsHandler() throws Exception{
+		dest.print(".equals(");
+		getNextToken();
+		cofinFinHandler();
+		dest.print(")");
+	}
+
+	//bulky. redo? not done
+	private static void booleanBuilder() throws Exception{
+		Token current = getNextToken();
+		if (current.getTokenType()==Token.THEN)
+			throw new Exception("boolean value expected.");
+		while (current.getTokenType()!=Token.THEN){
+			int tokType = current.getTokenType();
+			if (tokType==Token.NOT){
+				dest.print("!");
+			}
+			else if (tokType == Token.ID){
+				String tokString = current.getTokenString();
+				if (nat.contains(tokString)){
+					current = getNextToken();
+					if (current.getTokenType()!=Token.IS_IN)
+						throw new Exception("\"in\" expected.");
+					isInHandler();
+				}
+				else if (set.contains(tokString)){
+					dest.print(current.getTokenString());
+				}
+				else{
+					throw new Exception(String.format("Undefined variable \"%s\" used.", tokString));
+				}
+			}
+			else if(tokType == Token.NATCONST){
+				isInHandler();
+			}
+			else if (tokType == Token.COMPLEMENT || tokType==Token.CMP || tokType==Token.LEFTBRACE){
+				cofinFinHandler();
+			}
+			else if (tokType == Token.SUBSET){
+				subsetHandler();
+			}
+			else if (tokType == Token.SETDIFFERENCE || tokType == Token.UNION || tokType == Token.INTERSECTION){
+				setOpsHandler();
+			}
+			else if (tokType==Token.EQUALS){
+				setEqualsHandler();
+			}
+			current=getNextToken();
+		}
+	}
+
+	//done
+	private static void ifHandler() throws Exception{
+		dest.print("if (");
+		booleanBuilder();
+		dest.println("){");
+		statementHandler();
+		dest.println("}");
+	}
+
+	//done
+	private static void natAssign() throws Exception{
+		Token current = getNextToken();
+		if (current.getTokenType()!=Token.ID && current.getTokenType()!=Token.NATCONST)
+			throw new Exception("Type Mismatch");
+		dest.printf("%s;\r\n",current.getTokenString());
+	}
+	
+	private static void setAssign() throws Exception{
+		Token current = getNextToken();
+		if (current.getTokenType()!=Token.ID && current.getTokenType()!=Token.NATCONST)
+			throw new Exception("Type Mismatch");
+		dest.printf("%s;\r\n",current.getTokenString());
+	}
+	
+	private static void assignmentHandler() throws Exception{
+		Token current = sc.lookahead();
+		dest.print(current.getTokenString());
+		current = getNextToken();
+		if (current.getTokenType()!=Token.ASSIGN)
+			throw new Exception("\":=\" expected.");
+		dest.print(" = ");
+		if (nat.contains(current.getTokenString()))
+			natAssign();
+		else if (set.contains(current.getTokenString()))
+			setAssign();
+		else
+			throw new Exception(String.format("\"%s\" is an undeclared variable.",current.getTokenString()));
+	}
+	
+	private static void statementHandler() throws Exception{
+		int origin = sc.lookahead().getTokenType();
+		Token current = getNextToken();
+		while (!current.isTerminator(origin)){
+			if (current.getTokenType()==Token.ID){
+				assignmentHandler();
+			}
+			if (current.getTokenType()==Token.IF){
+				ifHandler();
+			}
+			if (current.getTokenType()==Token.ELSE){
+				dest.print("else {");
+				statementHandler();
+				dest.println("}");
+			}
+			if (current.getTokenType()==Token.UNRECOGNIZED){
+				dest.println(current.getTokenString());
+			}
+			current = getNextToken();
+		}
+	}
+
+	private static void program() throws Exception{
+		setHeader();
+		varHandler();
+		beginHandler();
+		setExpressionHandler();
+		close();
+	}
+
+	//done
+	private static Token getNextToken(){
+		sc.consume();
+		return sc.lookahead();
+	}
+	
+	
+	// you should not need to modify the main method
+	public static void main(String[] args) throws Exception{
+
+		if (args.length == 0)
+			sc = new setScanner(new Scanner(System.in));
+		else
+			sc = new setScanner(new Scanner(new File(args[0])));
+
+		Token currTok = getNextToken();
+
+		// adding a test for null so I can compile and run this
+		if (currTok != null && currTok.getTokenType() == Token.PROGRAM)
+			program();
+		else
+			throw new Exception("\"program\" expected.");
+
+		// add a comment  indicating a successful parse
+		dest.println("\n// Parsing completed successfully.");
+		dest.close();
 
 
-    private static String setConstResultVariable;
-    private static String setComplementedLiteralResultVariable;
-    private static String setLiteralResultVariable;
-
-    private static Map<String,Token> natMap = new TreeMap<>();
-
-    private static setScanner sc;
-    private static PrintStream dest;
-
-    private static void program(){
-        // attempts the translation of the source file
-        // into a Java source file.
-    }
-
-
-    // you should not need to modify the main method
-    public static void main(String[] args) throws Exception{
-
-        if (args.length == 0)
-            sc = new setScanner(new Scanner(System.in));
-        else
-            sc = new setScanner(new Scanner(new File(args[0])));
-
-        Token currTok = sc.lookahead();
-
-        // adding a test for null so I can compile and run this
-        if (currTok != null && currTok.getTokenType() == Token.PROGRAM)
-            program();
-        else
-            throw new Exception("\"program\" expected.");
-
-        if (sc.lookahead().getTokenType()!= 8 || sc.lookahead().getTokenType()!= 9 || sc.lookahead().getTokenType()!= 3)
-            throw new Exception("\"nat\", \"set\", or \"begin\" expected.");
-        else
-            natDec();
-
-        // add a comment  indicating a successful parse
-        dest.println("\n// Parsing completed successfully.");
-        dest.close();
-
-    }
-    public static void asgn(){ // assumes lookahead is ID
-        Token id = sc.lookahead(); // DO NOT CONSUME
-
-        if (!natMap.containsKey(id.getTokenString()))
-            throw new Error("Identifier not declared.");
-        else  if (natMap.get(id.getTokenString()).equals("NAT")) {
-            //natAsgn();
-        }else{
-            // the only other alternative is declared as a set
-            //setAsgn();
-        }
-
-    }
-
-    //emitting code
-    public void neStList(){
-//        st();  // should emit all the code needed for the statement
-//        while (lookahead = SEMICOLON){
-//            consume the SEMICOLON
-//            if (lookahead is ID or IF)
-//            st();
-//            else
-//            throw an exception with the message
-//            "identifier or if expected."
-//        }
-    }
-
-    public void neVarList(){
-//        get ID and consume it out of the token stream;
-//        attempt to install ID in symbol table
-//        and emit the Java declaration for it, but
-//        check if it's a duplicate and throw an
-//        exception if there is a problem.
-//
-//        while (lookahead = COMMA){
-//            consume the COMMA out of the token stream;
-//            if (next token is ID){
-//                get ID and consume it out of the token stream;
-//                attempt to install ID in symbol table
-//                and generate the Java declaration for it,
-//                        throwing an exception if there is a problem;
-//            }
-//            else
-//            throw an exception with the message
-//            "Identifier expected."
-//        }
-    }
-
-    public static void natDec(){
-//        if (lookahead = NAT){
-//            consume();
-//            if (lookahead is not ID)
-//            throw exception with message "identifier expected.";
-//            else
-//            neVarList();
-//            if (lookahead = SEMICOLON)
-//                consume();
-//            else
-//                throw an exception with message
-//            "semicolon expected."
-//        }
-//        else // no nat declarations
-//            return;
-    }
-
-
-    /*to obtain fresh temp variables.  Because ID variables must begin with
-       a letter, there is no chance for a name clash in the resulting Java file.*/
-    public String nextTemp(boolean isSet) {
-
-        if (isSet) {
-            return setTempPrefix + (++decSetTemps);
-        }
-        //else
-        //return natArrTempPrefix + (++natArrTempSuffix);
-        //}
-        return "remove this";
-    }
-
-    public void setAsgn(){
-//        get ID and consume it; suppose id is its tokenString;
-//        if it is not declared as a set variable, then throw
-//                an exception with the message id + " not declared as a set variable."
-//
-//        if lookahead is not ASSIGN then
-//        throw an exception with the message "assignment operator(:=),  expected."
-//        else{
-//            consume the lookahead;
-//            if (lookahead is not one of CMP, LEFTBRACE, ID, LEFTPAREN,
-//                    COMPLEMENT)
-//            throw an exception with the message that lists them out as
-//            expected tokens, using TOKEN_LABELS
-//            else{
-//                setExp();
-//                emit code id + " = " + setExpResultVariable + ";\n" to
-//                the output file;
-//            }
-//        }
-    }
-
-//    Note, the lookahead set for <set exp> is
-//            CMP, LEFTBRACE, ID, LEFTPAREN, COMPLEMENT
-//
-//    and we assume that has been tested already.
-//
-//    As with <ne st list> above, the whole <set exp> productions
-//    can be reworked to
-//
-//    <set level 2> (SETDIFFERENCE <set level 2>) *
-
-    public void setExp(){
-//        boolean needANewTemp;
-//        String res; // string identifying the variable holding the result
-//        setLevel2();
-//        Token tk = lookahead;
-//        int tkN = tk.getTokenId();
-//        if (slevel2ResultVar.charAt(0) == '$'  || tkN != Token.SETDIFFERENCE)
-//            res = slevel2ResultVar;
-//        else{
-//            // the result is a program variable and we will need to perform an op
-//
-//            needANewTemp = usedSetTemps == decSetTemps;
-//
-//            if (needANewTemp){
-//                res = nextTemp(true);
-//                usedSetTemps++;
-//            }
-//            else
-//                res = setVarTempPrefix + (++usedSetTemps);
-//
-//            // if it's new, we have to declare it;
-//            emit code ((needANewTemp? "CofinFin " : "") + res + " = " + slevel2ResultVar + ';');
-//        }
-//
-//
-//        while (tkN = Token.SETDIFFERENCE){
-//            lex.consume();
-//            tk = lookahead;
-//            tkN = tk.getTokenType();
-//            if (tkN != Token.CMP && tkN != Token.LEFTBRACE
-//                    && tkN != Token.ID && tkN != Token.LEFTPAREN &&
-//                    tkN != Token.COMPLEMENT)
-//                throw exception with message listing the expected tokens
-//            else{
-//                setlevel2();
-//                emit code for res = res.intersect(sLevel2ResultVar.complement());
-//                tk = lookahead;
-//                tkN = tk.getTokenType();
-//            }
-//
-//        }
-//        setExpResultVariable = res;
-    }
-
-
-//    ID
-//    LEFTBRACE, CMP
-//    LEFTPAREN
-//
-//    so the code for setAtomic() is, assuming the lookahead is one of those,
-
-    public void setAtomic(){
-//        if (lookahead == ID){
-//            let str be ID's string
-//            if (ID is declared to be of type set)
-//            setatomicResultVariable = str;
-//            else if (ID declared to be of type nat)
-//            throw an exception with message
-//            str is declared as nat, not set."
-//            else
-//            throw an exception with message
-//            str is not declared
-//        }
-//        else if (lookahead == LEFTPAREN){
-//            consume the LEFTPAREN;
-//            if (lookahead is not one of <set exp>'s lookaheads)
-//            throw the exception indicating what tokens are expected
-//            else{
-//                setExp();
-//                if (lookahead = RIGHTPAREN){
-//                    consume the RIGHTPAREN;
-//                    setAtomicResultVariable = setExpResultVariable;
-//                }
-//                else
-//                    throw an Exception with message
-//                rightparen expected.
-//            }
-//        }
-//        else{ // lookahead is either LEFTBRACE or CMP
-//            setConst();
-//            setAatomicResultVariable = setConstResultVariable;
-//        }
-    }
-
-//    to hold the names of the temporary variables that
-//    house the values.  Assuming the lookaheads are right the
-//    code is roughly
-
-    public void setConst(){
-//        if (lookahead is CMP){
-//            complemented();
-//            setConstResultVariable = setComplementedLiteralResultVariable;
-//        }
-//        else{
-//            setLiteral();
-//            setConstResultVariable = setLiteralResultVariable;
-//        }
-    }
-
-    public void complemented(){
-//        consume CMP;
-//        setLiteral();
-//
-//        emit code for
-//        setLiteralResultVariable = setLiteralResultVariable.complement();
-//
-//        and finally
-//        setComplementedLiteralResultVariable = setLiteralResultVariable;
-//
-//        to leave the result where it can be found.
-    }
-
+	}
 }
-
-/**
- *
-
-
- Pick a couple to do
-
- PROGRAM = 0, //  "program"  a reserved word
- ID = 1, // [a-zA-Z]+[a-zA-Z0-9]*
- VAR = 2, // "var"      a reserved word
- BEGIN = 3, // "begin"    a reserved word
- END = 4, // "end"      a reserved word
- IF = 5, //  "if"       a reserved word
- ELSE = 6, // "else"     a reserved word
- ENDIF = 7, // "endif"    a reserved word
- NAT = 8, //  "nat"      a reserved word
- SET = 9, // "set"      a reserved word
- NATCONST = 10, // 0|[1-9][0-9]*
- LEFTBRACE = 11,    // '{'
- RIGHTBRACE = 12,    // '}'
- LEFTPAREN = 13,    // '('
- RIGHTPAREN = 14,    // ')'
- SEMICOLON = 15,    // ';'
- PERIOD  =  16,    // '.'
- COMMA =  17,    // ','
- ASSIGN = 18, //  ":="  for assignment
- SUBSET = 19, //  "<="  for is subset of
- EQUALS = 20,  // '='   for equality comparisons of sets
- NOT =  21, //  "not" for boolean negation; so "not" is reserved
- INTERSECTION = 22 ,  // '*'   for set intersection
- UNION = 23,  // '+'   for set union
- SETDIFFERENCE = 24, // '\'   for binary set difference
- COMPLEMENT = 25,  // '-'   for unary set complement
- IS_IN  = 26, //  "in"  for set membership; so "in" is reserved
- THEN = 27, // "then" a reserved word
- CMP = 28, // "CMP" a reserved word
- EOF = 29, // to stand for reaching the end of the file
- UNRECOGNIZED = 30; // for anything else
- **/
-

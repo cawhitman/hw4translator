@@ -194,7 +194,18 @@ public class Token implements Comparable<Token>{
       bldr.append(']');
       return bldr.toString();
 
-   } 
+   }
+   
+   public boolean isTerminator(int origin){
+	   return (origin==BEGIN && tokenType==END)
+			   ||(origin==THEN && tokenType==ENDIF)
+			   ||(origin==THEN && tokenType==ELSE)
+			   ||(origin==ELSE && tokenType==ENDIF)
+			   ||(origin==ID && tokenType==SEMICOLON)
+			   ||(origin==ID && tokenType==END)
+			   ||(origin==ID && tokenType==ELSE)
+			   ||(origin==ID && tokenType==ENDIF);
+   }
 
    public int compareTo(Token tk){
       return tokenType - tk.tokenType;
