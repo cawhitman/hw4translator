@@ -1,9 +1,9 @@
 import java.util.*;
 import java.io.*;
 /*
-NEEDS METHOD FOR EXCEPTIONS
-NEEDS IMPROVED METHOD FOR BOOLEAN STATEMENTS
-NEEDS EXPRESSION HANDLER (PRINT EXPRESSION AFTER END)
+NEEDS METHOD FOR EXCEPTIONS  exceptions(int errornum), grab lookahead token info in the method
+NEEDS IMPROVED METHOD FOR BOOLEAN STATEMENTS; notboolOps(), bool(), notbool
+NEEDS EXPRESSION HANDLER (PRINT EXPRESSION AFTER END
 
 A template for the translator part of the project.
 
