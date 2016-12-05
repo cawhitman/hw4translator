@@ -1,5 +1,6 @@
 import java.util.*;
 import java.io.*;
+import java.lang.StringBuilder;
 /*
 NEEDS METHOD FOR EXCEPTIONS  exceptions(int errornum), grab lookahead token info in the method
 NEEDS IMPROVED METHOD FOR BOOLEAN STATEMENTS; notboolOps(), bool(), notbool
@@ -19,6 +20,7 @@ public class setTranslator{
 	private static ArrayList <String> nat, set;
 	
 	//done
+	//example: public class setTranslator{
 	private static void setHeader() throws Exception{
 		Token current = getNextToken();
 		if (current.getTokenType()!=Token.ID)
@@ -81,7 +83,7 @@ public class setTranslator{
 	}
 
 	//done
-	public static void beginHandler() throws Exception{
+	private static void beginHandler() throws Exception{
 		int origin = sc.lookahead().getTokenType();
 		if (origin != Token.BEGIN)
 			throw new Exception("\"begin\" expected.");
@@ -218,7 +220,7 @@ public class setTranslator{
 				subsetHandler();
 			}
 			else if (tokType == Token.SETDIFFERENCE || tokType == Token.UNION || tokType == Token.INTERSECTION){
-				setOpsHandler();
+				//setOpsHandler();
 			}
 			else if (tokType==Token.EQUALS){
 				setEqualsHandler();
@@ -288,11 +290,22 @@ public class setTranslator{
 		}
 	}
 
+	//Adds print statement in program of what comes after end
+	private static void printEndExpression(){
+		StringBuilder sb = new StringBuilder();
+		while(sc.lookahead().getTokenType() != Token.PERIOD) {
+			Token current = getNextToken();
+			sb.append(current.toString());
+		}
+		dest.print("System.out.println(" + sb.toString() + ");");
+	}
+
 	private static void program() throws Exception{
 		setHeader();
 		varHandler();
 		beginHandler();
-		setExpressionHandler();
+		//setExpressionHandler();
+		printEndExpression();
 		close();
 	}
 
